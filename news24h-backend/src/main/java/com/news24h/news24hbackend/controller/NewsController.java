@@ -29,11 +29,13 @@ public class NewsController {
         this.crawlerService = crawlerService;
     }
 
+    // Lấy danh sách tiêu đề tin tức nổi bật
     @GetMapping("/top-headlines")
     public List<NewsArticleDto> getTopHeadlines() {
         return newsService.getTopHeadlines();
     }
 
+    // Lấy danh sách tin tức theo category với phân trang
     @GetMapping("/category/{slug}")
     public Page<NewsArticleDto> getByCategory(
             @PathVariable String slug,
@@ -43,11 +45,13 @@ public class NewsController {
         return newsService.getNewsByCategory(slug, page, size);
     }
 
+    // Lấy chi tiết bài viết theo ID
     @GetMapping("/{id}")
     public NewsArticleDto getById(@PathVariable String id) {
         return newsService.getById(id);
     }
 
+    // Tìm kiếm bài viết theo từ khóa với phân trang
     @GetMapping("/search")
     public Page<NewsArticleDto> search(
             @RequestParam String query,
@@ -57,11 +61,13 @@ public class NewsController {
         return newsService.searchNews(query, page, size);
     }
 
+    // Lấy danh sách bài viết liên quan
     @GetMapping("/{id}/related")
     public List<NewsArticleDto> related(@PathVariable String id) {
         return newsService.getRelated(id);
     }
 
+    // Lấy danh sách tin tức dạng ticker (dành cho thanh tin tức chạy ngang)
     @GetMapping("/breaking-ticker")
     public List<NewsArticleDto> breakingTicker() {
         return newsService.getBreakingTicker();

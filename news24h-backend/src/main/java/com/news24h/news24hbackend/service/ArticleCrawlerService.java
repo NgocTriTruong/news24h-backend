@@ -7,10 +7,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
-/**
- * Service chuyên crawl nội dung HTML từ bài viết 24h.com.vn
- * để nhúng vào website của bạn.
- */
 @Service
 public class ArticleCrawlerService {
 
@@ -21,24 +17,14 @@ public class ArticleCrawlerService {
         this.newsRepo = newsRepo;
     }
 
-    /**
-     * Crawl toàn bộ nội dung bài viết từ link 24h.com.vn
-     * @param url link gốc của bài viết
-     * @return chuỗi HTML (inner HTML) của phần nội dung chính
-     */
+    // Crawl toàn bộ nội dung bài viết từ link 24h.com.vn
     public String crawlHtmlFrom24h(String url) {
         try {
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0")
                     .get();
 
-            // Tìm phần nội dung chính. Cần tùy chỉnh nếu 24h đổi layout.
-            Element content =
-                    doc.selectFirst("#article_id") != null
-                            ? doc.selectFirst("#article_id")
-                            : doc.selectFirst("article") != null
-                            ? doc.selectFirst("article")
-                            : doc.selectFirst(".text-conent");
+            Element content = doc.selectFirst("article.cate-24h-foot-arti-deta-info");
 
             if (content == null) {
                 System.out.println("Không tìm thấy nội dung chính cho URL: " + url);
@@ -47,6 +33,28 @@ public class ArticleCrawlerService {
 
             // Xóa bớt quảng cáo / script / iframe / các block không cần thiết
             content.select("script, iframe, .ads, .advertisement, .banner, .social").remove();
+
+            // Xóa block bài viết liên quan (bv-lq)
+            content.select(".bv-lq").remove();
+
+            // Xóa toàn bộ link trỏ về 24h.com.vn nhưng giữ text
+            content.select("a[href*='24h.com.vn']").forEach(a -> a.unwrap());
+
+            // FIX lazy-load image
+            content.select("img").forEach(img -> {
+
+                if (img.hasAttr("data-original") && !img.attr("data-original").isBlank()) {
+                    img.attr("src", img.attr("data-original"));
+                } else if (img.hasAttr("data-src") && !img.attr("data-src").isBlank()) {
+                    img.attr("src", img.attr("data-src"));
+                } else if (img.hasAttr("data-img") && !img.attr("data-img").isBlank()) {
+                    img.attr("src", img.attr("data-img"));
+                }
+
+                if (img.attr("src").startsWith("data:image")) {
+                    img.removeAttr("src");
+                }
+            });
 
             // Trả về HTML nội dung
             return content.html();
@@ -57,11 +65,7 @@ public class ArticleCrawlerService {
         }
     }
 
-    /**
-     * Hàm được NewsController gọi:
-     * POST /api/news/{id}/crawl
-     * -> Crawl từ sourceUrl rồi lưu content HTML vào DB.
-     */
+    // Crawl từ sourceUrl rồi lưu content HTML vào DB.
     public void crawlContentForArticle(String articleId) {
         // Lấy bài viết từ DB
         NewsArticle article = newsRepo.findById(articleId)

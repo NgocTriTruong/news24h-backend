@@ -44,7 +44,6 @@ public class RssFeedService {
         RSS_FEEDS.put("thi-truong-tieu-dung", "https://www.24h.com.vn/upload/rss/thitruongtieudung.rss");
         RSS_FEEDS.put("du-lich", "https://www.24h.com.vn/upload/rss/dulich.rss");
         RSS_FEEDS.put("suc-khoe-doi-song", "https://www.24h.com.vn/upload/rss/suckhoedoisong.rss");
-        RSS_FEEDS.put("cuoi-24h", "https://www.24h.com.vn/upload/rss/cuoi24h.rss");
     }
 
     /**
