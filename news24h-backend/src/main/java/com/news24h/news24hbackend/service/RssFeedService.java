@@ -59,6 +59,7 @@ public class RssFeedService {
         try {
             Document doc = Jsoup.connect(rssUrl)
                     .userAgent("Mozilla/5.0")
+                    .timeout(5_000)
                     .get();
 
             Elements items = doc.select("item");
