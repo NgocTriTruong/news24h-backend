@@ -2,8 +2,10 @@ package com.news24h.news24hbackend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class News24hBackendApplication {
 
     public static void main(String[] args) {

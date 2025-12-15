@@ -3,6 +3,7 @@ package com.news24h.news24hbackend.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -12,6 +13,7 @@ import java.util.Date;
  * Sinh và validate JWT token.
  */
 @Component
+@DependsOn("dotenvConfig")
 public class JwtTokenProvider {
 
     private final Key key;
