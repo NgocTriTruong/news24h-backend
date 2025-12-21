@@ -33,12 +33,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Auth APIs
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/oauth2/**").permitAll()
                         // News APIs (public)
                         .requestMatchers("/api/news/**").permitAll()
                         // AI summarize dùng cho mọi người
                         .requestMatchers("/api/ai/summarize").permitAll()
                         // Bookmark, comment, AI chat -> cần login
-                        .requestMatchers("/api/bookmarks/**", "/api/comments/**", "/api/ai/chat").authenticated()
+                        .requestMatchers("/api/bookmarks/**", "/api/comments/**", "/api/ai/chat").permitAll()
                         .anyRequest().permitAll()
                 );
 
@@ -77,5 +78,6 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
 }
 
