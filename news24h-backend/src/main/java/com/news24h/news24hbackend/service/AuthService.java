@@ -5,7 +5,7 @@ import com.news24h.news24hbackend.dto.LoginRequest;
 import com.news24h.news24hbackend.dto.RegisterRequest;
 import com.news24h.news24hbackend.entity.User;
 import com.news24h.news24hbackend.repository.UserRepository;
-import com.news24h.news24hbackend.security.JwtTokenProvider;
+import com.news24h.news24hbackend.security.JwtService;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,12 +20,12 @@ public class AuthService {
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider tokenProvider;
+    private final JwtService tokenProvider;
 
     public AuthService(UserRepository userRepo,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
-                       JwtTokenProvider tokenProvider) {
+                       JwtService tokenProvider) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;

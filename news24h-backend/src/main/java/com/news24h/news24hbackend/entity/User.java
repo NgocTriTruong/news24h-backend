@@ -3,6 +3,8 @@ package com.news24h.news24hbackend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -20,8 +22,18 @@ public class User {
 
     private String name;
 
-    @Column(nullable = false)
-    private String password; // bcrypt
+    // GOOGLE / FACEBOOK / ZALO
+    private String provider;
+
+    // id bên provider
+    private String providerId;
+
+    private String avatarUrl;
+
+    @Column(nullable = true)
+    private String password;
+
+    private Instant createdAt;
 
     // Chủ đề yêu thích: lưu dạng string đơn giản, ví dụ "the-thao,cong-nghe"
     private String favoriteCategories;
