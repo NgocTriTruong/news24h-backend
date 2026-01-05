@@ -55,6 +55,13 @@ public class RssFeedService {
         RSS_FEEDS.forEach(this::fetchRss);
     }
 
+    public void fetchRssByCategory(String category) {
+        String rssUrl = RSS_FEEDS.get(category);
+        if (rssUrl != null) {
+            fetchRss(category, rssUrl);
+        }
+    }
+
     private void fetchRss(String slug, String rssUrl) {
         try {
             Document doc = Jsoup.connect(rssUrl)

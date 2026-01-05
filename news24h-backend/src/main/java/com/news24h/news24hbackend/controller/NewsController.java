@@ -3,10 +3,13 @@ package com.news24h.news24hbackend.controller;
 import com.news24h.news24hbackend.dto.NewsArticleDto;
 import com.news24h.news24hbackend.service.ArticleCrawlerService;
 import com.news24h.news24hbackend.service.NewsService;
+import com.news24h.news24hbackend.service.ThumbnailUpdateService;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * API chính cho phần tin tức:
@@ -23,10 +26,12 @@ public class NewsController {
 
     private final NewsService newsService;
     private final ArticleCrawlerService crawlerService;
+    private final ThumbnailUpdateService thumbnailUpdateService;
 
-    public NewsController(NewsService newsService, ArticleCrawlerService crawlerService) {
+    public NewsController(NewsService newsService, ArticleCrawlerService crawlerService, ThumbnailUpdateService thumbnailUpdateService) {
         this.newsService = newsService;
         this.crawlerService = crawlerService;
+        this.thumbnailUpdateService = thumbnailUpdateService;
     }
 
     // Lấy danh sách tiêu đề tin tức nổi bật
@@ -77,6 +82,26 @@ public class NewsController {
     @PostMapping("/{id}/crawl")
     public void crawlContent(@PathVariable String id) {
         crawlerService.crawlContentForArticle(id);
+    }
+
+    // Update thumbnails cho các bài viết đang dùng placeholder
+    @PostMapping("/update-thumbnails")
+    public Map<String, Object> updateThumbnails() {
+        int updated = thumbnailUpdateService.updatePlaceholderThumbnails();
+        Map<String, Object> result = new HashMap<>();
+        result.put("updated", updated);
+        result.put("message", "Đã update " + updated + " thumbnails");
+        return result;
+    }
+
+    // Update thumbnail cho một bài viết cụ thể
+    @PostMapping("/{id}/update-thumbnail")
+    public Map<String, Object> updateThumbnail(@PathVariable String id) {
+        boolean success = thumbnailUpdateService.updateThumbnailForArticle(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("message", success ? "Thumbnail updated" : "Failed to update thumbnail");
+        return result;
     }
 }
 

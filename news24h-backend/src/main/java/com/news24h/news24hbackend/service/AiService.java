@@ -67,8 +67,19 @@ public class AiService {
             String systemInstruction =
                     "Bạn là biên tập viên tin tức tiếng Việt. Hãy tóm tắt chính xác, không bịa thêm.";
             String userPrompt =
-                    "Tóm tắt nội dung sau thành đúng 3 gạch đầu dòng, ngắn gọn:\n\n" + text +
-                            "\n\nYêu cầu định dạng: mỗi dòng bắt đầu bằng '- ' và chỉ có đúng 3 dòng.";
+                    """
+                        Hãy tóm tắt nội dung bài báo dưới đây bằng tiếng Việt.
+                        
+                        Yêu cầu:
+                        - Tóm tắt thành 4–5 gạch đầu dòng (nếu nội dung ngắn thì có thể ít hơn, nhưng tối đa 5).
+                        - Mỗi gạch là 1 câu hoàn chỉnh, rõ chủ thể, rõ hành động.
+                        - Không suy diễn, không bịa thêm thông tin ngoài bài viết.
+                        - Không dùng từ chung chung như “một số”, “nhiều người”, nếu bài có thông tin cụ thể.
+                        - BẮT BUỘC mỗi gạch đầu dòng bắt đầu bằng "- ".
+                        - Không viết đoạn văn, chỉ viết gạch đầu dòng.
+                        
+                        Nội dung bài viết:
+                        """ + text;
 
             String out = callGemini(systemInstruction, buildContentsSingleTurn(userPrompt));
 
@@ -186,12 +197,18 @@ public class AiService {
         JsonNode root = objectMapper.readTree(resp.getBody());
         JsonNode candidates = root.path("candidates");
         if (candidates.isArray() && candidates.size() > 0) {
-            return candidates.get(0)
+            JsonNode parts = candidates.get(0)
                     .path("content")
-                    .path("parts")
-                    .get(0)
-                    .path("text")
-                    .asText("");
+                    .path("parts");
+
+            StringBuilder sb = new StringBuilder();
+            if (parts.isArray()) {
+                for (JsonNode p : parts) {
+                    sb.append(p.path("text").asText(""));
+                }
+            }
+
+            return sb.toString().trim();
         }
 
         return "Không nhận được phản hồi từ AI.";
@@ -205,24 +222,68 @@ public class AiService {
     }
 
     private List<String> parseBullets(String text) {
-        List<String> result = new ArrayList<>();
-        if (text == null) return result;
+        if (text == null || text.isBlank()) {
+            return List.of("AI không thể tạo bản tóm tắt phù hợp cho nội dung này.");
+        }
 
+        List<String> result = new ArrayList<>();
+        StringBuilder current = null;
+
+        // 1. Ưu tiên parse bullet nếu có "-"
         for (String line : text.split("\n")) {
             String s = line.trim();
+
             if (s.startsWith("-")) {
-                s = s.replaceFirst("^-\\s*", "").trim();
-                if (!s.isBlank()) result.add(s);
+                if (current != null && !current.toString().isBlank()) {
+                    result.add(current.toString().trim());
+                }
+                current = new StringBuilder();
+                current.append(s.replaceFirst("^-\\s*", ""));
+            } else if (current != null) {
+                current.append(" ").append(s);
             }
         }
 
-        // fallback: nếu model không trả đúng format
-        if (result.isEmpty()) {
-            result.add(text.trim());
+        if (current != null && !current.toString().isBlank()) {
+            result.add(current.toString().trim());
         }
 
-        // ép đúng 3 ý (để UI ổn)
-        if (result.size() > 3) result = result.subList(0, 3);
+        // 2. Nếu KHÔNG có bullet → tách theo câu
+        if (result.isEmpty()) {
+            String normalized = text
+                    .replace("\n", " ")
+                    .replace("“", "\"")
+                    .replace("”", "\"")
+                    .replace("…", ".");
+
+            String[] sentences = normalized.split("(?<=[.!?]\")\\s+|(?<=[.!?])\\s+");
+
+            for (String s : sentences) {
+                String trimmed = s.trim();
+                if (trimmed.length() > 40) {
+                    result.add(trimmed);
+                }
+                if (result.size() >= 5) break;
+            }
+        }
+
+// 3. Nếu vẫn chỉ có 1 câu quá dài → cắt theo độ dài
+        if (result.size() == 1 && result.get(0).length() > 200) {
+            String longText = result.get(0);
+            result.clear();
+
+            int step = longText.length() / 4;
+            for (int i = 0; i < 4; i++) {
+                int start = i * step;
+                int end = (i == 3) ? longText.length() : (i + 1) * step;
+                result.add(longText.substring(start, end).trim());
+            }
+        }
+
+        if (result.isEmpty()) {
+            return List.of("AI không thể tạo bản tóm tắt phù hợp cho nội dung này.");
+        }
+
         return result;
     }
 
