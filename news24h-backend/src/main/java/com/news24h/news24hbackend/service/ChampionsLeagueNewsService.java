@@ -19,10 +19,14 @@ public class ChampionsLeagueNewsService {
 
     private final NewsArticleRepository newsRepository;
     private final ArticleCrawlerService crawlerService;
+    private final ThumbnailUpdateService thumbnailUpdateService;
 
-    public ChampionsLeagueNewsService(NewsArticleRepository newsRepository, ArticleCrawlerService crawlerService) {
+    public ChampionsLeagueNewsService(NewsArticleRepository newsRepository,
+                                      ArticleCrawlerService crawlerService,
+                                      ThumbnailUpdateService thumbnailUpdateService) {
         this.newsRepository = newsRepository;
         this.crawlerService = crawlerService;
+        this.thumbnailUpdateService = thumbnailUpdateService;
     }
 
     /**
@@ -94,10 +98,30 @@ public class ChampionsLeagueNewsService {
 
                                 // Kiểm tra đã tồn tại chưa
                                 if (newsRepository.findBySourceUrl(href).isEmpty()) {
+                                    // Thử lấy thumbnail từ parent element trước (nhanh hơn)
+                                    String thumbnail = null;
+                                    try {
+                                        Element parent = link.parent();
+                                        if (parent != null) {
+                                            Element imgInParent = parent.selectFirst("img");
+                                            if (imgInParent != null && imgInParent.hasAttr("src")) {
+                                                thumbnail = imgInParent.attr("abs:src");
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        // Ignore
+                                    }
+
+                                    // Nếu không tìm thấy thumbnail trong listing, sẽ dùng placeholder
+                                    // và update sau bằng endpoint riêng
+                                    if (thumbnail == null || thumbnail.isEmpty()) {
+                                        thumbnail = "https://picsum.photos/800/400";
+                                    }
+
                                     NewsArticle article = new NewsArticle();
                                     article.setTitle(title);
                                     article.setDescription("Tin tức về Champions League / Cup C1");
-                                    article.setThumbnail("https://picsum.photos/800/400");
+                                    article.setThumbnail(thumbnail);
                                     article.setCategory("cup-c1");
                                     article.setSourceUrl(href);
                                     article.setPublishedAt(Instant.now());
@@ -134,6 +158,13 @@ public class ChampionsLeagueNewsService {
             }
 
             System.out.println("Đã crawl " + articles.size() + " tin tức Cup C1");
+
+            // Tự động update thumbnails cho tin vừa crawl
+            if (!articles.isEmpty()) {
+                System.out.println("Đang update thumbnails cho tin mới...");
+                int updated = thumbnailUpdateService.updatePlaceholderThumbnails();
+                System.out.println("Đã update " + updated + " thumbnails");
+            }
 
         } catch (Exception e) {
             System.out.println("Lỗi crawl tin Cup C1: " + e.getMessage());
