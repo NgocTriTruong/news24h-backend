@@ -33,7 +33,7 @@ public class NewsService {
     }
 
     public List<NewsArticleDto> getTopHeadlines() {
-        return newsRepo.findTop10ByOrderByPublishedAtDesc()
+        return newsRepo.findTop20ByOrderByPublishedAtDesc()
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -73,9 +73,9 @@ public class NewsService {
 
     public List<NewsArticleDto> getBreakingTicker() {
         // Đơn giản: lấy 5 bài mới nhất
-        return newsRepo.findTop10ByOrderByPublishedAtDesc()
+        return newsRepo.findTop20ByOrderByPublishedAtDesc()
                 .stream()
-                .limit(5)
+                .limit(10)
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }

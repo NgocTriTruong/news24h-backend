@@ -18,19 +18,15 @@ public class ThumbnailUpdateService {
         this.newsRepository = newsRepository;
     }
 
-    /**
-     * Update thumbnails cho các bài viết đang dùng placeholder
-     * Chạy riêng để không block main crawl process
-     */
     public int updatePlaceholderThumbnails() {
         int updated = 0;
 
         try {
-            // Tìm tất cả bài viết có thumbnail là picsum.photos
+            // Tìm tất cả bài viết có thumbnail placeholder (picsum, data URI, hoặc không phải http/https)
             List<NewsArticle> articlesWithPlaceholder = newsRepository
                     .findAll()
                     .stream()
-                    .filter(a -> a.getThumbnail() != null && a.getThumbnail().contains("picsum.photos"))
+                    .filter(a -> isPlaceholderThumbnail(a.getThumbnail()))
                     .toList();
 
             System.out.println("Tìm thấy " + articlesWithPlaceholder.size() + " bài viết cần update thumbnail");
@@ -54,14 +50,20 @@ public class ThumbnailUpdateService {
                     // Thử og:image trước
                     Element ogImage = doc.selectFirst("meta[property=og:image]");
                     if (ogImage != null && ogImage.hasAttr("content")) {
-                        thumbnail = ogImage.attr("content");
+                        thumbnail = normalizeThumbnail(ogImage.attr("content"));
+                        if (isLogoImage(thumbnail)) {
+                            thumbnail = null;
+                        }
                     }
 
                     // Nếu không có og:image, thử img trong article
                     if (thumbnail == null || thumbnail.isEmpty()) {
                         Element articleImg = doc.selectFirst("article img, .article-content img, .news-content img");
                         if (articleImg != null && articleImg.hasAttr("src")) {
-                            thumbnail = articleImg.attr("abs:src");
+                            thumbnail = normalizeThumbnail(articleImg.attr("abs:src"));
+                            if (isLogoImage(thumbnail)) {
+                                thumbnail = null;
+                            }
                         }
                     }
 
@@ -69,12 +71,15 @@ public class ThumbnailUpdateService {
                     if (thumbnail == null || thumbnail.isEmpty()) {
                         Element firstImg = doc.selectFirst("body img");
                         if (firstImg != null && firstImg.hasAttr("src")) {
-                            thumbnail = firstImg.attr("abs:src");
+                            thumbnail = normalizeThumbnail(firstImg.attr("abs:src"));
+                            if (isLogoImage(thumbnail)) {
+                                thumbnail = null;
+                            }
                         }
                     }
 
                     // Chỉ update nếu tìm được thumbnail thật
-                    if (thumbnail != null && !thumbnail.isEmpty() && !thumbnail.contains("picsum.photos")) {
+                    if (thumbnail != null && !thumbnail.isEmpty() && !isPlaceholderThumbnail(thumbnail)) {
                         article.setThumbnail(thumbnail);
                         newsRepository.save(article);
                         updated++;
@@ -98,6 +103,47 @@ public class ThumbnailUpdateService {
         }
 
         return updated;
+    }
+
+    private boolean isPlaceholderThumbnail(String thumbnail) {
+        if (thumbnail == null || thumbnail.isEmpty()) {
+            return true;
+        }
+
+        String lower = thumbnail.toLowerCase();
+
+        if (lower.contains("picsum.photos")) {
+            return true;
+        }
+
+        if (lower.startsWith("data:image") || lower.contains("r0lgodlhaqab") || lower.contains("1x1")) {
+            return true;
+        }
+
+        return !lower.startsWith("http://") && !lower.startsWith("https://");
+    }
+
+    private boolean isLogoImage(String url) {
+        if (url == null || url.isEmpty()) {
+            return false;
+        }
+
+        String lower = url.toLowerCase();
+        // Bỏ các logo svg của 24h hoặc ảnh logo chung
+        return lower.endsWith(".svg") || lower.contains("logo-24h") || lower.contains("/logo") || lower.contains("/favicon");
+    }
+
+    private String normalizeThumbnail(String url) {
+        if (url == null) {
+            return null;
+        }
+
+        String cleaned = url.trim();
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+
+        return isPlaceholderThumbnail(cleaned) ? null : cleaned;
     }
 
     /**
@@ -125,14 +171,20 @@ public class ThumbnailUpdateService {
             // Thử og:image
             Element ogImage = doc.selectFirst("meta[property=og:image]");
             if (ogImage != null && ogImage.hasAttr("content")) {
-                thumbnail = ogImage.attr("content");
+                thumbnail = normalizeThumbnail(ogImage.attr("content"));
+                if (isLogoImage(thumbnail)) {
+                    thumbnail = null;
+                }
             }
 
             // Fallback: img trong article
             if (thumbnail == null || thumbnail.isEmpty()) {
                 Element articleImg = doc.selectFirst("article img, .article-content img");
                 if (articleImg != null) {
-                    thumbnail = articleImg.attr("abs:src");
+                    thumbnail = normalizeThumbnail(articleImg.attr("abs:src"));
+                    if (isLogoImage(thumbnail)) {
+                        thumbnail = null;
+                    }
                 }
             }
 

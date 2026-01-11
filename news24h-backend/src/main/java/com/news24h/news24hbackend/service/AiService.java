@@ -114,7 +114,7 @@ public class AiService {
 
             // LẤY DỮ LIỆU TIN TỨC MỚI NHẤT TỪ DB
             List<NewsArticle> latestNews =
-                    newsRepo.findTop10ByOrderByPublishedAtDesc();
+                    newsRepo.findTop20ByOrderByPublishedAtDesc();
 
             StringBuilder newsContext = new StringBuilder();
             for (NewsArticle n : latestNews) {

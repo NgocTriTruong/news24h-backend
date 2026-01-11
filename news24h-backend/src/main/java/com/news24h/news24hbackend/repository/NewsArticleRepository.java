@@ -17,7 +17,7 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, String
 
     List<NewsArticle> findTop5ByFeaturedTrueOrderByPublishedAtDesc();
 
-    List<NewsArticle> findTop10ByOrderByPublishedAtDesc();
+    List<NewsArticle> findTop20ByOrderByPublishedAtDesc();
 
     List<NewsArticle> findTop5ByCategoryAndIdNotOrderByPublishedAtDesc(
             String category, String excludeId);
