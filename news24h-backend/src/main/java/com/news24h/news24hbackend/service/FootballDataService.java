@@ -9,6 +9,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -307,6 +308,23 @@ public class FootballDataService {
      */
     public List<FootballMatch> getUpcomingMatches(String leagueCode) {
         return matchRepository.findByLeagueCodeAndMatchDateAfterOrderByMatchDateAsc(leagueCode, Instant.now());
+    }
+
+    /**
+     * Tự động crawl tất cả giải đấu khi khởi động và mỗi 12h
+     */
+    @Scheduled(fixedRate = 43200000, initialDelay = 20000)
+    public void scheduledCrawlAllLeagues() {
+        System.out.println("[FootballDataService] Tự động crawl tất cả giải đấu...");
+        for (FootballLeague league : FootballLeague.values()) {
+            try {
+                crawlStandings(league);
+                crawlMatches(league, false); // Lịch thi đấu
+                crawlMatches(league, true);  // Kết quả
+            } catch (Exception e) {
+                System.out.println("[FootballDataService] Lỗi crawl cho " + league.getName() + ": " + e.getMessage());
+            }
+        }
     }
 
     private Integer parseInteger(String text) {
